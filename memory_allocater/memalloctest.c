@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
 #include "memalloc.h"
 #include "minqueue.h"
 
@@ -11,7 +14,7 @@
 
 int main(int argc, char** argv)
 {
-    void *buffer = malloc(MEM_SIZE);
+	void* buffer = malloc(MEM_SIZE);
     init_malloc(buffer, MEM_SIZE);
 
     //Try to allocate something larger than the buffer.
@@ -26,14 +29,25 @@ int main(int argc, char** argv)
     assert(first_half);
     void *second_half = c_malloc((MEM_SIZE / 2) - sizeof(QueueNode));
     assert(second_half);
+    //Should fail as you can't have three halves! :/
+    void *third_half = c_malloc((MEM_SIZE / 2) - sizeof(QueueNode));
+    assert(!third_half);
+
     c_free(first_half);
     c_free(second_half);
-    
+    c_free(third_half);
+
     //Now we should check if these holes were combined properly.
     //Allocate a block that is as large as usable memory.
     void *full_ptr = c_malloc(MEM_SIZE - sizeof(QueueNode));
     assert(full_ptr);
     c_free(full_ptr);
 
-    return 0;   
+    //Should fail as you can't allocate negative space.
+    void *neg_ptr = c_malloc(-MEM_SIZE);
+    assert(!neg_ptr);
+    c_free(neg_ptr);
+
+    free(buffer);
+    return 0;
 }

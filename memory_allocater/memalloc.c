@@ -47,7 +47,8 @@ static void *get_highest_addr() {
 //Allocates a new node in the begginning hole.
 //Returns NULL on error or a valid pointer to a QueueNode's data on success.
 static void *non_queue_alloc(uint64_t size) {
-    if((size + sizeof(QueueNode)) <= SIZE) {
+    //The reason we check both size and sizeof is because we want to prevent overflow.
+    if(size < SIZE && (size + sizeof(QueueNode)) <= SIZE) {
         //We have enough space to make a hole.
         void *highest_addr = get_highest_addr();
         //Allocate node at highest addr.
@@ -67,7 +68,8 @@ void *c_malloc(uint64_t size)
     if(!curr_hole) {
         //If the current hole is null we should try to allocate a new hole in the left over space. By going to the smallest address
         //and subtracting the size of the hole.
-        return non_queue_alloc(size);
+        void* addr = non_queue_alloc(size);
+        return (addr == NULL)? addr : addr + sizeof(QueueNode);
     }
     //Now we need to check if we need to make another hole.
     //(Size of this allocated block) - (Header size for next hole)
@@ -86,7 +88,7 @@ void *c_malloc(uint64_t size)
     if((void*)curr_hole > HEAP_END || (void*)curr_hole < HEAP_START)
         return NULL;
     //Then finally return the pointer.
-    return curr_hole;
+    return (void*)(curr_hole) + sizeof(QueueNode);
 }
 
 
@@ -95,6 +97,8 @@ void c_free(void *ptr)
     //If we get a null ptr then this malloc failed, just quit
     if(!ptr)
         return;
+    //Else shift the ptr back to what it used to be.
+    ptr -= sizeof(QueueNode);
     //Remove from the allocated list
     mq_remove(&allocated, (QueueNode*)ptr);
     //Add the pointer to the hole list.
