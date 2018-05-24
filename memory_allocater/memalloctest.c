@@ -14,7 +14,7 @@
 
 int main(int argc, char** argv)
 {
-	void* buffer = malloc(MEM_SIZE);
+    void* buffer = malloc(MEM_SIZE);
     init_malloc(buffer, MEM_SIZE);
 
     //Try to allocate something larger than the buffer.
