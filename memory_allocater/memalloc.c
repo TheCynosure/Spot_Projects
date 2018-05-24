@@ -29,10 +29,8 @@ void init_malloc(void *holes_start, uint64_t init_size)
     allocated.head = NULL;
     allocated.size = 0;
     //Initial size of the first hole should be the addr where it starts to the end of memory.
-    holes.head = (QueueNode*) holes_start;
-    holes.head->data = init_size - sizeof(QueueNode);
-    holes.head->next = NULL;
-    holes.size = 1;
+    holes.head = NULL;
+    holes.size = 0;
 }
 
 //Returns the addr of the highest node or HEAP_END if there is no node higher / allocated yet.
@@ -41,20 +39,21 @@ static void *get_highest_addr() {
             return HEAP_END;
         //If holes is null or allocated's head has the highest addr then it is the highest addr.
         else if(holes.head == NULL || (allocated.head != NULL && holes.head != NULL && &(allocated.head) > &(holes.head)))
-            return &(allocated.head);
+            return allocated.head;
         else
-            return &(holes.head);
+            return holes.head;
 }
 
 //Allocates a new node in the begginning hole.
 //Returns NULL on error or a valid pointer to a QueueNode's data on success.
 static void *non_queue_alloc(uint64_t size) {
-    if((size + sizeof(QueueNode)) < SIZE) {
+    if((size + sizeof(QueueNode)) <= SIZE) {
         //We have enough space to make a hole.
         void *highest_addr = get_highest_addr();
         //Allocate node at highest addr.
         void *node_addr = highest_addr - size - sizeof(QueueNode);
         mq_add(&allocated, node_addr, size);
+        SIZE -= size + sizeof(QueueNode);
         return node_addr;
     }
     return NULL;
@@ -109,7 +108,7 @@ void c_free(void *ptr)
     //Check to see if highest_addr is the holes.head, if so we need to add it back to the
     //beginning hole.
     void *highest_addr = get_highest_addr();
-    if(highest_addr == &(holes.head)) {
+    if(highest_addr == holes.head) {
         //Add this node back into the main hole.
         SIZE += sizeof(QueueNode) + holes.head->data;
         mq_remove(&holes, holes.head);
